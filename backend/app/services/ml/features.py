@@ -1,6 +1,24 @@
 from typing import Dict, Any
 import pandas as pd
-import numpy as np
+
+FEATURE_COLUMNS = [
+    "transaction_amount",
+    "payment_method",
+    "customer_segment",
+    "failure_reason",
+    "previous_transaction_count",
+    "historical_success_rate",
+    "retry_count",
+]
+
+ACTION_COLUMN = "action"
+ALLOWED_ACTIONS = [
+    "NO_ACTION",
+    "RETRY",
+    "PAYMENT_LINK",
+    "CUSTOMER_NOTIFICATION",
+    "HUMAN_ESCALATION",
+]
 
 CATEGORICAL_COLUMNS = [
     "payment_method",

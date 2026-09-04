@@ -80,7 +80,7 @@ async def general_exception_handler(request: Request, exc: Exception):
             success=False,
             error=ErrorDetail(
                 code="INTERNAL_ERROR",
-                message=f"Internal server error: {str(exc)}"
+                message="Internal server error"
             )
         ).model_dump()
     )

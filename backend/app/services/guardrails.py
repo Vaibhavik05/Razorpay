@@ -162,7 +162,7 @@ class GuardrailEngine:
             return GuardrailDecision(
                 status=GuardrailStatus.BLOCK,
                 requires_approval=False,
-                reason=f"Guardrail safety failure (Fail-Closed): {str(ex)}",
+                reason="Guardrail safety failure (Fail-Closed): action blocked.",
                 risk_level=RiskLevel.HIGH
             )
 

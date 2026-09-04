@@ -43,21 +43,6 @@ def get_current_auth(credentials: Optional[HTTPAuthorizationCredentials] = Secur
     if token in DEMO_TOKENS:
         return DEMO_TOKENS[token]
     
-    # If token follows format user:role:merchant
-    if ":" in token:
-        parts = token.split(":")
-        if len(parts) == 3:
-            u_id, r_str, m_id = parts
-            try:
-                role = UserRole(r_str.upper())
-                return AuthContext(user_id=u_id, merchant_id=m_id, role=role)
-            except ValueError:
-                pass
-                
-    # Fallback default demo context for convenience if token is non-empty string
-    if token == "test-token" or token.startswith("Bearer"):
-        return DEMO_TOKENS["default_token"]
-        
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail={"code": "AUTHENTICATION_FAILED", "message": "Invalid authentication token"}

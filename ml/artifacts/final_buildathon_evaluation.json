@@ -1,0 +1,181 @@
+{
+  "evaluation_type": "final held-out test evaluation",
+  "test_rows": 10000,
+  "test_set_used_for_tuning": false,
+  "frozen_threshold": 0.405,
+  "frozen_costs": {
+    "NO_ACTION": 0.0,
+    "RETRY": 2.0,
+    "CUSTOMER_NOTIFICATION": 5.0,
+    "PAYMENT_LINK": 20.0,
+    "HUMAN_ESCALATION": 50.0
+  },
+  "frozen_risk_cost_rates": {
+    "LOW": 0.0,
+    "MEDIUM": 0.01,
+    "HIGH": 0.02
+  },
+  "business_comparison": [
+    {
+      "strategy": "No Intervention",
+      "recovery_rate": 0.4901,
+      "recovered_revenue": 8969433.37,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 0.0,
+      "intervention_cost": 0.0,
+      "expected_risk_cost": 0.0,
+      "net_revenue": 8969433.37,
+      "roi": null,
+      "intervention_rate": 0.0,
+      "no_action_rate": 1.0,
+      "unnecessary_intervention_rate": 0.0,
+      "action_success_rate": 0.0,
+      "recommended_action_distribution": {
+        "NO_ACTION": 10000
+      }
+    },
+    {
+      "strategy": "Always Retry",
+      "recovery_rate": 0.5162,
+      "recovered_revenue": 9047047.0,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 77613.63,
+      "intervention_cost": 20000.0,
+      "expected_risk_cost": 34158.83,
+      "net_revenue": 8992888.17,
+      "roi": 1.17274,
+      "intervention_rate": 1.0,
+      "no_action_rate": 0.0,
+      "unnecessary_intervention_rate": 0.8043,
+      "action_success_rate": 0.5162,
+      "recommended_action_distribution": {
+        "RETRY": 10000
+      }
+    },
+    {
+      "strategy": "Rule-Based Recovery",
+      "recovery_rate": 0.568,
+      "recovered_revenue": 10004014.69,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 1034581.32,
+      "intervention_cost": 72971.0,
+      "expected_risk_cost": 23898.98,
+      "net_revenue": 9907144.71,
+      "roi": 12.850466,
+      "intervention_rate": 0.7072,
+      "no_action_rate": 0.2928,
+      "unnecessary_intervention_rate": 0.715922,
+      "action_success_rate": 0.497879,
+      "recommended_action_distribution": {
+        "CUSTOMER_NOTIFICATION": 1483,
+        "NO_ACTION": 2928,
+        "PAYMENT_LINK": 3021,
+        "RETRY": 2568
+      }
+    },
+    {
+      "strategy": "ML Recovery",
+      "recovery_rate": 0.5169,
+      "recovered_revenue": 9060551.87,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 91118.5,
+      "intervention_cost": 16248.0,
+      "expected_risk_cost": 31436.61,
+      "net_revenue": 9012867.26,
+      "roi": 2.673184,
+      "intervention_rate": 0.8124,
+      "no_action_rate": 0.1876,
+      "unnecessary_intervention_rate": 0.788528,
+      "action_success_rate": 0.596135,
+      "recommended_action_distribution": {
+        "NO_ACTION": 1876,
+        "RETRY": 8124
+      }
+    },
+    {
+      "strategy": "ML + Optimization",
+      "recovery_rate": 0.6005,
+      "recovered_revenue": 10525827.05,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 1556393.68,
+      "intervention_cost": 104952.0,
+      "expected_risk_cost": 32491.19,
+      "net_revenue": 10388383.86,
+      "roi": 13.519995,
+      "intervention_rate": 0.9855,
+      "no_action_rate": 0.0145,
+      "unnecessary_intervention_rate": 0.746728,
+      "action_success_rate": 0.598681,
+      "recommended_action_distribution": {
+        "CUSTOMER_NOTIFICATION": 3296,
+        "HUMAN_ESCALATION": 533,
+        "NO_ACTION": 145,
+        "PAYMENT_LINK": 2765,
+        "RETRY": 3261
+      }
+    },
+    {
+      "strategy": "ML + Uplift + Optimization",
+      "recovery_rate": 0.6005,
+      "recovered_revenue": 10525827.05,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 1556393.68,
+      "intervention_cost": 104952.0,
+      "expected_risk_cost": 32491.19,
+      "net_revenue": 10388383.86,
+      "roi": 13.519995,
+      "intervention_rate": 0.9855,
+      "no_action_rate": 0.0145,
+      "unnecessary_intervention_rate": 0.746728,
+      "action_success_rate": 0.598681,
+      "recommended_action_distribution": {
+        "CUSTOMER_NOTIFICATION": 3296,
+        "HUMAN_ESCALATION": 533,
+        "NO_ACTION": 145,
+        "PAYMENT_LINK": 2765,
+        "RETRY": 3261
+      }
+    },
+    {
+      "strategy": "Full NexaRecover AI",
+      "recovery_rate": 0.5776,
+      "recovered_revenue": 10113560.79,
+      "baseline_no_action_revenue": 8969433.37,
+      "incremental_revenue": 1144127.42,
+      "intervention_cost": 59250.0,
+      "expected_risk_cost": 0.0,
+      "net_revenue": 10054310.79,
+      "roi": 18.310167,
+      "intervention_rate": 0.7881,
+      "no_action_rate": 0.2119,
+      "unnecessary_intervention_rate": 0.755995,
+      "action_success_rate": 0.624413,
+      "recommended_action_distribution": {
+        "CUSTOMER_NOTIFICATION": 2694,
+        "NO_ACTION": 2119,
+        "PAYMENT_LINK": 1967,
+        "RETRY": 3220
+      }
+    }
+  ],
+  "ml_recovery_model": {
+    "roc_auc": 0.731074,
+    "pr_auc": 0.756706,
+    "precision": 0.603028,
+    "recall": 0.917244,
+    "f1": 0.727664,
+    "brier": 0.203991
+  },
+  "action_model": {
+    "roc_auc": 0.747502,
+    "pr_auc": 0.768874,
+    "brier": 0.199313
+  },
+  "limitations": [
+    "All business comparisons use synthetic potential outcomes.",
+    "The observed action assignment is observational, not randomized.",
+    "Action results are not production causal uplift estimates.",
+    "ML + Optimization and ML + Uplift + Optimization share the frozen Phase 3 response surface; the latter names the explicit signed uplift calculation.",
+    "Full NexaRecover AI applies current guardrail proxy rules for offline comparison."
+  ]
+}

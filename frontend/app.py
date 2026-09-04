@@ -138,6 +138,7 @@ from frontend.views.detail import render_detail
 from frontend.views.approvals import render_approvals
 from frontend.views.analytics import render_analytics
 from frontend.views.experiments import render_experiments
+from frontend.views.audit import render_audit
 
 # ── Session state defaults ───────────────────────────────────────────────────
 _DEFAULTS = {
@@ -174,7 +175,8 @@ PAGES = [
     "Approvals Queue",
     "Analytics",
     "Strategy Experiments",
-    "System Health & Config",
+    "Audit",
+    "Settings",
 ]
 
 PERSONA_TOKENS = {
@@ -305,7 +307,10 @@ elif page == "Analytics":
 elif page == "Strategy Experiments":
     render_experiments(client)
 
-elif page == "System Health & Config":
+elif page == "Audit":
+    render_audit(client)
+
+elif page == "Settings":
     st.markdown("### 🔧 System Health & Configuration")
     st.caption("Live backend diagnostics and environment configuration overview.")
 

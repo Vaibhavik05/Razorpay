@@ -1,4 +1,4 @@
-# test_config.py – verifies config loading and mode handling
+# test_config.py ï¿½ verifies config loading and mode handling
 
 import os
 import pytest
@@ -11,11 +11,15 @@ def test_default_mode(monkeypatch):
 
 def test_real_mode_requires_keys(monkeypatch):
     monkeypatch.setenv('RAZORPAY_MODE', 'REAL')
+    monkeypatch.delenv('RAZORPAY_KEY_ID', raising=False)
+    monkeypatch.delenv('RAZORPAY_KEY_SECRET', raising=False)
     with pytest.raises(EnvironmentError):
         get_settings()
 
 def test_mock_mode_allows_missing_keys(monkeypatch):
     monkeypatch.setenv('RAZORPAY_MODE', 'MOCK')
+    monkeypatch.delenv('RAZORPAY_KEY_ID', raising=False)
+    monkeypatch.delenv('RAZORPAY_KEY_SECRET', raising=False)
     settings = get_settings()
     assert settings.RAZORPAY_MODE == 'MOCK'
     assert settings.RAZORPAY_KEY_ID is None

@@ -1,0 +1,255 @@
+{
+  "model_name": "action_effectiveness_response_surface",
+  "model_version": "v1.0",
+  "algorithm": "XGBoost",
+  "prediction": "P(recovery | pre-decision context, action)",
+  "feature_columns": [
+    "transaction_amount",
+    "payment_method",
+    "customer_segment",
+    "failure_reason",
+    "previous_transaction_count",
+    "historical_success_rate",
+    "retry_count"
+  ],
+  "action_column": "action",
+  "allowed_actions": [
+    "NO_ACTION",
+    "RETRY",
+    "PAYMENT_LINK",
+    "CUSTOMER_NOTIFICATION",
+    "HUMAN_ESCALATION"
+  ],
+  "categorical_features": [
+    "payment_method",
+    "customer_segment",
+    "failure_reason",
+    "action"
+  ],
+  "numerical_features": [
+    "transaction_amount",
+    "previous_transaction_count",
+    "historical_success_rate",
+    "retry_count"
+  ],
+  "target_columns_by_action": {
+    "NO_ACTION": "outcome_no_action",
+    "RETRY": "outcome_retry",
+    "PAYMENT_LINK": "outcome_payment_link",
+    "CUSTOMER_NOTIFICATION": "outcome_customer_notification",
+    "HUMAN_ESCALATION": "outcome_human_escalation"
+  },
+  "training_target": "synthetic potential outcome for each action",
+  "action_assignment": "observational and context-dependent; not randomized",
+  "causal_interpretation": "not a production causal uplift estimate",
+  "random_seed": 42,
+  "training_rows": 40000,
+  "validation_rows": 8000,
+  "held_out_test_rows": 10000,
+  "training_long_rows": 200000,
+  "validation_long_rows": 40000,
+  "held_out_test_long_rows": 50000,
+  "observed_action_metrics_train": {
+    "NO_ACTION": {
+      "sample_count": 14772,
+      "observed_recovery_rate": 0.643041
+    },
+    "RETRY": {
+      "sample_count": 6983,
+      "observed_recovery_rate": 0.450379
+    },
+    "PAYMENT_LINK": {
+      "sample_count": 9200,
+      "observed_recovery_rate": 0.486522
+    },
+    "CUSTOMER_NOTIFICATION": {
+      "sample_count": 6671,
+      "observed_recovery_rate": 0.467846
+    },
+    "HUMAN_ESCALATION": {
+      "sample_count": 2374,
+      "observed_recovery_rate": 0.472199
+    }
+  },
+  "validation_metrics": {
+    "split": "train_validation",
+    "sample_count": 40000,
+    "roc_auc": 0.748305,
+    "pr_auc": 0.763376,
+    "brier_score": 0.200049,
+    "probability_distribution": {
+      "min": 0.019142,
+      "p25": 0.419172,
+      "median": 0.511085,
+      "p75": 0.615366,
+      "max": 0.944672,
+      "mean": 0.522379
+    },
+    "calibration_curve": {
+      "mean_predicted_probability": [
+        0.095828,
+        0.323713,
+        0.417796,
+        0.461428,
+        0.49592,
+        0.527542,
+        0.562271,
+        0.633608,
+        0.826556,
+        0.879322
+      ],
+      "observed_fraction_positive": [
+        0.089933,
+        0.329497,
+        0.42075,
+        0.455022,
+        0.489995,
+        0.534616,
+        0.571893,
+        0.67125,
+        0.8195,
+        0.8855
+      ]
+    },
+    "by_action": {
+      "NO_ACTION": {
+        "sample_count": 8000,
+        "potential_outcome_recovery_rate": 0.479875,
+        "mean_predicted_probability": 0.479713,
+        "roc_auc": 0.744979,
+        "pr_auc": 0.724014,
+        "brier_score": 0.199525
+      },
+      "RETRY": {
+        "sample_count": 8000,
+        "potential_outcome_recovery_rate": 0.50675,
+        "mean_predicted_probability": 0.496597,
+        "roc_auc": 0.781465,
+        "pr_auc": 0.785883,
+        "brier_score": 0.189547
+      },
+      "PAYMENT_LINK": {
+        "sample_count": 8000,
+        "potential_outcome_recovery_rate": 0.566,
+        "mean_predicted_probability": 0.557828,
+        "roc_auc": 0.739359,
+        "pr_auc": 0.778987,
+        "brier_score": 0.199689
+      },
+      "CUSTOMER_NOTIFICATION": {
+        "sample_count": 8000,
+        "potential_outcome_recovery_rate": 0.547625,
+        "mean_predicted_probability": 0.54263,
+        "roc_auc": 0.719155,
+        "pr_auc": 0.757949,
+        "brier_score": 0.207781
+      },
+      "HUMAN_ESCALATION": {
+        "sample_count": 8000,
+        "potential_outcome_recovery_rate": 0.533625,
+        "mean_predicted_probability": 0.535124,
+        "roc_auc": 0.732434,
+        "pr_auc": 0.752292,
+        "brier_score": 0.203705
+      }
+    }
+  },
+  "held_out_test_metrics": {
+    "split": "held_out_test",
+    "sample_count": 50000,
+    "roc_auc": 0.747502,
+    "pr_auc": 0.768874,
+    "brier_score": 0.199313,
+    "probability_distribution": {
+      "min": 0.018117,
+      "p25": 0.424889,
+      "median": 0.515545,
+      "p75": 0.632668,
+      "max": 0.930013,
+      "mean": 0.530722
+    },
+    "calibration_curve": {
+      "mean_predicted_probability": [
+        0.10341,
+        0.340109,
+        0.423216,
+        0.465828,
+        0.499709,
+        0.531726,
+        0.56885,
+        0.655336,
+        0.837032,
+        0.882245
+      ],
+      "observed_fraction_positive": [
+        0.1006,
+        0.323935,
+        0.441312,
+        0.47499,
+        0.5022,
+        0.5292,
+        0.578106,
+        0.659391,
+        0.843744,
+        0.889557
+      ]
+    },
+    "by_action": {
+      "NO_ACTION": {
+        "sample_count": 10000,
+        "potential_outcome_recovery_rate": 0.4901,
+        "mean_predicted_probability": 0.488276,
+        "roc_auc": 0.746493,
+        "pr_auc": 0.73835,
+        "brier_score": 0.199182
+      },
+      "RETRY": {
+        "sample_count": 10000,
+        "potential_outcome_recovery_rate": 0.5162,
+        "mean_predicted_probability": 0.506896,
+        "roc_auc": 0.78981,
+        "pr_auc": 0.795178,
+        "brier_score": 0.185887
+      },
+      "PAYMENT_LINK": {
+        "sample_count": 10000,
+        "potential_outcome_recovery_rate": 0.5605,
+        "mean_predicted_probability": 0.565914,
+        "roc_auc": 0.736418,
+        "pr_auc": 0.776615,
+        "brier_score": 0.200024
+      },
+      "CUSTOMER_NOTIFICATION": {
+        "sample_count": 10000,
+        "potential_outcome_recovery_rate": 0.5597,
+        "mean_predicted_probability": 0.55083,
+        "roc_auc": 0.714848,
+        "pr_auc": 0.764789,
+        "brier_score": 0.20827
+      },
+      "HUMAN_ESCALATION": {
+        "sample_count": 10000,
+        "potential_outcome_recovery_rate": 0.5449,
+        "mean_predicted_probability": 0.541695,
+        "roc_auc": 0.731656,
+        "pr_auc": 0.759367,
+        "brier_score": 0.203198
+      }
+    }
+  },
+  "representative_context_probabilities": {
+    "NO_ACTION": 0.831327,
+    "RETRY": 0.866116,
+    "PAYMENT_LINK": 0.859462,
+    "CUSTOMER_NOTIFICATION": 0.858903,
+    "HUMAN_ESCALATION": 0.833778
+  },
+  "training_timestamp_utc": "2026-09-04T10:09:45.956880+00:00",
+  "software_versions": {
+    "python": "3.13.9",
+    "scikit_learn": "1.7.2",
+    "xgboost": "3.4.1",
+    "pandas": "2.3.3"
+  },
+  "test_set_used_for_tuning": false
+}

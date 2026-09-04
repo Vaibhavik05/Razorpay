@@ -23,6 +23,13 @@ nexarecover.db
 .streamlit/secrets.toml
 # ML artefacts
 ml/artifacts/
+!ml/artifacts/
+!ml/artifacts/recovery_model_v1.0.joblib
+!ml/artifacts/model_metrics.json
+!ml/artifacts/action_effectiveness_model_v1.0.joblib
+!ml/artifacts/action_effectiveness_metrics.json
+!ml/artifacts/final_buildathon_evaluation.json
+!ml/artifacts/final_buildathon_evaluation.md
 # Evaluation reports
 evaluation/
 # Test caches

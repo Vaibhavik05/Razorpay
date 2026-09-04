@@ -86,6 +86,13 @@ def get_recovery_status(
     Retrieve the current state of a recovery operation.
     (13_API_CONTRACTS.md Section 21)
     """
+    recovery = db.query(Recovery).filter(Recovery.id == recovery_id).first()
+    if not recovery:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "RECOVERY_NOT_FOUND", "message": f"Recovery record {recovery_id} not found"}
+        )
+    verify_merchant_access(auth, recovery.merchant_id)
     rec_data = RecoveryService.get_recovery_status(db, recovery_id)
     return StandardResponse(
         success=True,
@@ -119,6 +126,32 @@ def approve_recovery(
         )
 
     verify_merchant_access(auth, recovery.merchant_id)
+
+    if payload.reviewer_id != auth.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "AUTHORIZATION_FAILED", "message": "Reviewer identity does not match authenticated user"}
+        )
+    if recovery.status == RecoveryLifecycleStatus.APPROVED.value:
+        return StandardResponse(
+            success=True,
+            data=ApprovalDecisionData(
+                recovery_id=recovery.id,
+                approval_status="APPROVED",
+                approved_by=payload.reviewer_id,
+            ).model_dump(),
+            message="Recovery approval already recorded"
+        )
+    if recovery.status in [RecoveryLifecycleStatus.REJECTED.value, RecoveryLifecycleStatus.BLOCKED.value]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "INVALID_STATE", "message": f"Recovery cannot be approved from status '{recovery.status}'"}
+        )
+    if recovery.status != RecoveryLifecycleStatus.APPROVAL_REQUIRED.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "INVALID_STATE", "message": f"Recovery is not awaiting approval (status '{recovery.status}')"}
+        )
 
     recovery.status = RecoveryLifecycleStatus.APPROVED.value
     recovery.requires_approval = False
@@ -185,6 +218,33 @@ def reject_recovery(
         )
 
     verify_merchant_access(auth, recovery.merchant_id)
+
+    if payload.reviewer_id != auth.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "AUTHORIZATION_FAILED", "message": "Reviewer identity does not match authenticated user"}
+        )
+    if recovery.status == RecoveryLifecycleStatus.REJECTED.value:
+        return StandardResponse(
+            success=True,
+            data=ApprovalDecisionData(
+                recovery_id=recovery.id,
+                approval_status="REJECTED",
+                rejected_by=payload.reviewer_id,
+                rejection_reason=recovery.block_reason,
+            ).model_dump(),
+            message="Recovery rejection already recorded"
+        )
+    if recovery.status in [RecoveryLifecycleStatus.APPROVED.value, RecoveryLifecycleStatus.EXECUTED.value, RecoveryLifecycleStatus.RECOVERED.value]:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "INVALID_STATE", "message": f"Recovery cannot be rejected from status '{recovery.status}'"}
+        )
+    if recovery.status != RecoveryLifecycleStatus.APPROVAL_REQUIRED.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "INVALID_STATE", "message": f"Recovery is not awaiting approval (status '{recovery.status}')"}
+        )
 
     recovery.status = RecoveryLifecycleStatus.REJECTED.value
     recovery.block_reason = payload.reason

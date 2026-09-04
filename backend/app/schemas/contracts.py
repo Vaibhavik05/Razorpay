@@ -106,6 +106,18 @@ class RecoveryRecommendationData(BaseModel):
     risk_level: RiskLevel
     requires_approval: bool
     reason: str
+    action_probabilities: Dict[str, float] = Field(default_factory=dict)
+    baseline_probability: float = 0.0
+    action_comparisons: List[Dict[str, Any]] = Field(default_factory=list)
+    uplift: float = 0.0
+    expected_risk_cost: float = 0.0
+    recommended_net_value: float = 0.0
+    decision_reason: str = ""
+    optimizer_recommendation: RecoveryAction = RecoveryAction.NO_ACTION
+    guardrail_status: Optional[GuardrailStatus] = None
+    guardrail_reason: Optional[str] = None
+    decision_state: str = "RECOMMENDED"
+    llm_explanation: Optional[Dict[str, Any]] = None
 
 # Recovery Execution Contracts
 class RecoveryExecuteRequest(BaseModel):
@@ -126,6 +138,7 @@ class RecoveryExecuteData(BaseModel):
     approval_reason: Optional[str] = None
     guardrail_status: Optional[GuardrailStatus] = None
     block_reason: Optional[str] = None
+    decision_state: Optional[str] = None
 
 # Recovery Status Contract
 class RecoveryStatusData(BaseModel):

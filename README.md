@@ -399,3 +399,72 @@ Switch modes by setting `RAZORPAY_MODE` in your `.env` file. The backend validat
 ---
 
 *Built with ❤️ using FastAPI, Streamlit, SQLAlchemy, Razorpay Python SDK, XGBoost, and Plotly.*
+
+## Final Buildathon Completion
+
+NexaRecover AI is an AI revenue-recovery decision and orchestration platform, not merely a failed-payment classifier. It answers whether to intervene, which modeled intervention is economically worthwhile, whether guardrails allow it, whether human approval is needed, and what happened after execution.
+
+### Phase 7: Professional Fintech UI
+
+The Streamlit application provides Dashboard, Recovery Opportunities, Opportunity Details, Approvals Queue, Analytics, Strategy Experiments, Audit, and Settings views. Primary KPIs, action comparisons, guardrail state, execution state, and audit history come from backend APIs. Unavailable time-series, experiment, or action-count data is shown as an honest empty state.
+
+### Phase 8: Optional Explanation Layer
+
+Ollama is optional and disabled by default. Set `OLLAMA_ENABLED=true` and configure `OLLAMA_MODEL` to use a local model. The explanation layer receives structured decisions and can explain them, but it cannot calculate financial values, choose actions, override guardrails, approve, or execute. Disabled, unavailable, malformed, or timed-out Ollama responses use a deterministic fallback.
+
+### Phase 9: Mock Demonstration
+
+Run the isolated end-to-end mock demonstration:
+
+```powershell
+$env:PYTHONPATH = "."
+python scripts/run_mock_demo.py
+```
+
+The demo covers successful recovery, mock execution, webhook outcome, NO_ACTION, guardrail block, approval-required flow, and duplicate recommendation handling. It uses an in-memory database and never calls live Razorpay.
+
+### Phase 10: Final Evaluation
+
+The frozen final comparison is generated with:
+
+```powershell
+$env:PYTHONPATH = "."
+python ml/evaluate_buildathon.py
+```
+
+This is the only final-evaluation script that reads `data/test.csv`. It does not tune models, thresholds, optimizer costs, or decisions. Results are synthetic potential-outcome estimates; the observational action assignment does not support production causal uplift claims.
+
+The final held-out comparison is stored in `ml/artifacts/final_buildathon_evaluation.json` and `ml/artifacts/final_buildathon_evaluation.md`. The ML + Optimization comparison produced the highest absolute net revenue, while the Full NexaRecover AI simulation produced the highest ROI after the frozen guardrail proxy rules were applied.
+
+### Phase 11: Architecture and Security
+
+The lifecycle is:
+
+```text
+FAILED PAYMENT -> ANALYSIS -> ML PROBABILITY -> ACTION EFFECTIVENESS
+-> UPLIFT AND REVENUE OPTIMIZATION -> GUARDRAILS -> APPROVAL
+-> MOCK EXECUTION -> WEBHOOK OUTCOME -> AUDIT -> METRICS
+```
+
+The optimizer and guardrails are separate. NO_ACTION is valid. Execution requires authentication, merchant scope, matching recovery/action identifiers, a valid state, approval when required, and an idempotency key. Webhooks verify the exact raw-body HMAC and require a known recovery identity.
+
+Detailed documents:
+
+- `PHASE5_LIFECYCLE.md`
+- `PHASE6_SECURITY.md`
+- `ml/ACTION_EFFECTIVENESS.md`
+- `ml/REVENUE_OPTIMIZATION.md`
+- `ml/artifacts/final_buildathon_evaluation.md`
+
+### Deployment
+
+- Backend: `https://nexarecover-backend.onrender.com`
+- API health: `https://nexarecover-backend.onrender.com/api/v1/health`
+- API docs: `https://nexarecover-backend.onrender.com/api/v1/docs`
+- Streamlit entrypoint: `frontend/app.py`
+
+For local use, run FastAPI and Streamlit in separate terminals as described in the Running the Application section. Keep `RAZORPAY_MODE=MOCK`; no live credentials are required.
+
+### Known Limitations
+
+The data and outcomes are synthetic. The action model is a counterfactual response surface trained from synthetic potential outcomes, and observed action assignment is observational rather than randomized. Production causal uplift requires experimentation or another causal design. Demo authentication uses predefined tokens, and the current backend does not expose time-series experiment reporting. `ml/artifacts/` is ignored by Git and must be packaged separately for deployment.

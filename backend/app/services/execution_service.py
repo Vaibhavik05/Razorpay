@@ -35,11 +35,18 @@ class ExecutionService:
             
         # 1. Check Idempotency (Section 53)
         existing_idempotency = db.query(IdempotencyRecord).filter(
-            IdempotencyRecord.idempotency_key == idempotency_key,
-            IdempotencyRecord.recovery_id == request.recovery_id
+            IdempotencyRecord.idempotency_key == idempotency_key
         ).first()
         
         if existing_idempotency:
+            if (
+                existing_idempotency.recovery_id != request.recovery_id
+                or existing_idempotency.action != request.action.value
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={"code": "IDEMPOTENCY_KEY_CONFLICT", "message": "Idempotency-Key was already used for a different request"}
+                )
             cached_data = existing_idempotency.response_json
             return RecoveryExecuteData(**cached_data)
 
@@ -49,6 +56,31 @@ class ExecutionService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail={"code": "RECOVERY_NOT_FOUND", "message": f"Recovery {request.recovery_id} not found"}
+            )
+
+        if recovery.merchant_id != request.merchant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "AUTHORIZATION_FAILED", "message": "Recovery belongs to a different merchant"}
+            )
+        if recovery.recommended_action != request.action.value:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "ACTION_MISMATCH", "message": "Requested action does not match optimizer recommendation"}
+            )
+        if request.action == RecoveryAction.NO_ACTION:
+            AuditService.log_event(
+                db=db,
+                event_type="NO_ACTION_RECORDED",
+                merchant_id=request.merchant_id,
+                payment_id=request.transaction_id,
+                recovery_id=recovery.id,
+                action=request.action.value,
+                details={"decision_state": "NO_ACTION"},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "NO_ACTION_NOT_EXECUTABLE", "message": "NO_ACTION does not invoke execution"}
             )
 
         # 3. Retrieve Context
@@ -166,12 +198,12 @@ class ExecutionService:
         recovery.status = RecoveryLifecycleStatus.EXECUTING.value
         db.commit()
         
-        razorpay_client = get_razorpay_client()
         payment_link_id = None
         payment_link_url = None
         executed_time = datetime.utcnow()
         
         try:
+            razorpay_client = get_razorpay_client()
             if request.action == RecoveryAction.PAYMENT_LINK:
                 cust_details = {"name": f"Customer {customer.id}", "contact": "+919876543210"} if customer else None
                 link_resp = razorpay_client.create_payment_link(
@@ -248,9 +280,9 @@ class ExecutionService:
                 merchant_id=request.merchant_id,
                 payment_id=payment.id,
                 recovery_id=recovery.id,
-                details={"error": str(ex)}
+                details={"failure_type": type(ex).__name__}
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"code": "RAZORPAY_API_ERROR", "message": f"Execution failed: {str(ex)}"}
+                detail={"code": "RAZORPAY_API_ERROR", "message": "Execution failed safely"}
             )

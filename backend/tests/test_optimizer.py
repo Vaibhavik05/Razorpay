@@ -21,12 +21,12 @@ def test_incremental_revenue_calculation():
     incremental = RevenueOptimizer.calculate_incremental_revenue(action_prob, natural_prob, amount)
     assert incremental == 5500.0
 
-def test_incremental_revenue_floor_at_zero():
+def test_incremental_revenue_preserves_negative_uplift():
     amount = 1000.0
     natural_prob = 0.50
     action_prob = 0.40  # lower than baseline
     incremental = RevenueOptimizer.calculate_incremental_revenue(action_prob, natural_prob, amount)
-    assert incremental == 0.0
+    assert incremental == -100.0
 
 def test_expected_net_value():
     inc_rev = 500.0

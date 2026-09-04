@@ -12,9 +12,11 @@ from backend.app.schemas.contracts import (
     RecoveryStatusData
 )
 from backend.app.services.ml.model import ml_model_service
+from backend.app.services.ml.action_effectiveness import action_effectiveness_model_service
 from backend.app.services.optimizer import RevenueOptimizer
 from backend.app.services.guardrails import GuardrailEngine, GuardrailDecision
 from backend.app.services.ai_explainer import StructuredAIExplainer
+from backend.app.services.llm_explainer import llm_explainer
 from backend.app.services.audit_service import AuditService
 
 class RecoveryService:
@@ -91,6 +93,16 @@ class RecoveryService:
         policy = db.query(MerchantPolicy).filter(MerchantPolicy.merchant_id == request.merchant_id).first()
         existing_recs = db.query(Recovery).filter(Recovery.transaction_id == request.transaction_id).all()
 
+        existing_recommendation = next(
+            (item for item in existing_recs if item.status in [
+                RecoveryLifecycleStatus.RECOMMENDED.value,
+                RecoveryLifecycleStatus.APPROVAL_REQUIRED.value,
+                RecoveryLifecycleStatus.APPROVED.value,
+                RecoveryLifecycleStatus.BLOCKED.value,
+            ]),
+            None,
+        )
+
         # Determine recovery probability if not provided
         rec_prob = request.recovery_probability
         confidence = request.confidence
@@ -99,32 +111,62 @@ class RecoveryService:
             rec_prob = rec_prob or p_prob
             confidence = confidence or p_conf
 
-        # Uplifts for candidate actions relative to baseline
-        natural_prob = payment.natural_recovery_probability if payment else max(0.1, rec_prob - 0.25)
-        action_uplifts = {
-            RecoveryAction.RETRY: 0.15,
-            RecoveryAction.PAYMENT_LINK: 0.26,
-            RecoveryAction.CUSTOMER_NOTIFICATION: 0.18,
-            RecoveryAction.HUMAN_ESCALATION: 0.20
-        }
+        try:
+            action_probabilities = action_effectiveness_model_service.predict_action_probabilities(
+                request.model_dump()
+            )
+        except Exception as ex:
+            AuditService.log_event(
+                db=db,
+                event_type="DECISION_FAILED",
+                merchant_id=request.merchant_id,
+                payment_id=request.transaction_id,
+                details={"component": "action_effectiveness_model", "error": str(ex)},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": "DECISION_ENGINE_UNAVAILABLE", "message": "Action-effectiveness model unavailable"},
+            ) from ex
+        allowed_actions = [RecoveryAction(action) for action in (
+            policy.allowed_actions if policy and policy.allowed_actions else action_probabilities.keys()
+        ) if action in action_probabilities]
+        if RecoveryAction.NO_ACTION not in allowed_actions:
+            allowed_actions.insert(0, RecoveryAction.NO_ACTION)
 
-        allowed_actions_enum = [RecoveryAction.NO_ACTION, RecoveryAction.RETRY, RecoveryAction.PAYMENT_LINK, RecoveryAction.CUSTOMER_NOTIFICATION]
-        if policy and policy.allowed_actions:
-            allowed_actions_enum = [RecoveryAction(a) for a in policy.allowed_actions if a in RecoveryAction._value2member_map_]
+        risk_level = RiskLevel.LOW
+        if request.amount > 25000:
+            risk_level = RiskLevel.HIGH
+        elif request.amount > 10000 or confidence < 0.65:
+            risk_level = RiskLevel.MEDIUM
 
-        # Deterministic Revenue Optimizer
-        best_action, evaluations = RevenueOptimizer.evaluate_candidate_actions(
-            amount=request.amount,
-            natural_recovery_prob=natural_prob,
-            action_uplifts=action_uplifts,
-            allowed_actions=allowed_actions_enum
+        try:
+            best_action, optimization = RevenueOptimizer.optimize_action_probabilities(
+                amount=request.amount,
+                action_probabilities=action_probabilities,
+                allowed_actions=allowed_actions,
+                risk_level=risk_level,
+            )
+        except Exception as ex:
+            AuditService.log_event(
+                db=db,
+                event_type="DECISION_FAILED",
+                merchant_id=request.merchant_id,
+                payment_id=request.transaction_id,
+                details={"component": "revenue_optimizer", "failure_type": type(ex).__name__},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": "DECISION_ENGINE_UNAVAILABLE", "message": "Recovery decision unavailable"},
+            ) from ex
+        chosen_comparison = next(
+            item for item in optimization["comparisons"] if item["action"] == best_action.value
         )
-
-        chosen_eval = evaluations.get(best_action, evaluations[RecoveryAction.NO_ACTION])
-        expected_rec = chosen_eval["expected_recovery"]
-        inc_rev = chosen_eval["incremental_revenue"]
-        cost = chosen_eval["intervention_cost"]
-        net_val = chosen_eval["expected_net_value"]
+        expected_rec = chosen_comparison["expected_recovered_revenue"]
+        rec_prob = chosen_comparison["recovery_probability"]
+        inc_rev = chosen_comparison["expected_incremental_revenue"]
+        cost = chosen_comparison["intervention_cost"]
+        risk_cost = chosen_comparison["expected_risk_cost"]
+        net_val = chosen_comparison["expected_net_value"]
 
         # Deterministic Guardrail Check
         guardrail_decision: GuardrailDecision = GuardrailEngine.evaluate(
@@ -134,8 +176,50 @@ class RecoveryService:
             policy=policy,
             payment=payment,
             customer=customer,
-            existing_recoveries=existing_recs
+            existing_recoveries=[] if existing_recommendation else existing_recs
         )
+
+        if existing_recommendation:
+            recovery_id = existing_recommendation.id
+            AuditService.log_event(
+                db=db,
+                event_type="RECOMMENDATION_REPLAYED",
+                merchant_id=request.merchant_id,
+                payment_id=request.transaction_id,
+                recovery_id=recovery_id,
+                action=existing_recommendation.recommended_action,
+                details={"idempotent": True},
+            )
+            return RecoveryRecommendationData(
+                recovery_id=recovery_id,
+                transaction_id=request.transaction_id,
+                recommended_action=RecoveryAction(existing_recommendation.recommended_action),
+                recovery_probability=existing_recommendation.recovery_probability,
+                expected_recovery=existing_recommendation.expected_recovery,
+                expected_incremental_revenue=existing_recommendation.expected_incremental_revenue,
+                intervention_cost=existing_recommendation.intervention_cost,
+                expected_net_value=existing_recommendation.expected_net_value,
+                confidence=existing_recommendation.confidence,
+                risk_level=RiskLevel(existing_recommendation.risk_level),
+                requires_approval=existing_recommendation.requires_approval,
+                reason=existing_recommendation.reason or "Existing recommendation replayed.",
+                action_probabilities=action_probabilities,
+                baseline_probability=optimization["baseline_probability"],
+                action_comparisons=optimization["comparisons"],
+                uplift=chosen_comparison["uplift"],
+                expected_risk_cost=risk_cost,
+                recommended_net_value=optimization["recommended_net_value"],
+                decision_reason=optimization["decision_reason"],
+                optimizer_recommendation=best_action,
+                guardrail_status=guardrail_decision.status,
+                guardrail_reason=guardrail_decision.reason,
+                decision_state=(
+                    "BLOCKED_BY_GUARDRAIL" if existing_recommendation.status == RecoveryLifecycleStatus.BLOCKED.value
+                    else "APPROVAL_REQUIRED" if existing_recommendation.status == RecoveryLifecycleStatus.APPROVAL_REQUIRED.value
+                    else "NO_ACTION" if existing_recommendation.recommended_action == RecoveryAction.NO_ACTION.value
+                    else "READY_FOR_EXECUTION"
+                ),
+            )
 
         # Structured AI Explanation
         ai_exp = StructuredAIExplainer.generate_explanation(
@@ -157,6 +241,14 @@ class RecoveryService:
             initial_status = RecoveryLifecycleStatus.APPROVAL_REQUIRED.value
         elif guardrail_decision.status == GuardrailStatus.BLOCK:
             initial_status = RecoveryLifecycleStatus.BLOCKED.value
+
+        decision_state = "READY_FOR_EXECUTION"
+        if best_action == RecoveryAction.NO_ACTION:
+            decision_state = "NO_ACTION"
+        elif guardrail_decision.status == GuardrailStatus.REQUIRE_APPROVAL:
+            decision_state = "APPROVAL_REQUIRED"
+        elif guardrail_decision.status == GuardrailStatus.BLOCK:
+            decision_state = "BLOCKED_BY_GUARDRAIL"
 
         recovery = Recovery(
             id=recovery_id,
@@ -191,6 +283,20 @@ class RecoveryService:
             details={"expected_net_value": net_val, "expected_incremental_revenue": inc_rev}
         )
 
+        AuditService.log_event(
+            db=db,
+            event_type="OPTIMIZER_RECOMMENDATION",
+            merchant_id=request.merchant_id,
+            payment_id=request.transaction_id,
+            recovery_id=recovery_id,
+            action=best_action.value,
+            details={
+                "action_probabilities": action_probabilities,
+                "comparisons": optimization["comparisons"],
+                "decision_state": decision_state,
+            },
+        )
+
         guardrail_event_type = "GUARDRAIL_PASSED" if guardrail_decision.status == GuardrailStatus.ALLOW else (
             "GUARDRAIL_APPROVAL_REQUIRED" if guardrail_decision.status == GuardrailStatus.REQUIRE_APPROVAL else "GUARDRAIL_BLOCKED"
         )
@@ -204,6 +310,15 @@ class RecoveryService:
             details={"reason": guardrail_decision.reason, "status": guardrail_decision.status.value}
         )
 
+        llm_explanation = llm_explainer.explain({
+            "recommended_action": best_action.value,
+            "decision_reason": optimization["decision_reason"],
+            "guardrail_status": guardrail_decision.status.value,
+            "requires_approval": guardrail_decision.requires_approval,
+            "baseline_probability": optimization["baseline_probability"],
+            "action_comparisons": optimization["comparisons"],
+        })
+
         return RecoveryRecommendationData(
             recovery_id=recovery_id,
             transaction_id=request.transaction_id,
@@ -216,7 +331,19 @@ class RecoveryService:
             confidence=confidence,
             risk_level=guardrail_decision.risk_level,
             requires_approval=guardrail_decision.requires_approval,
-            reason=ai_exp["reason"]
+            reason=ai_exp["reason"],
+            action_probabilities=action_probabilities,
+            baseline_probability=optimization["baseline_probability"],
+            action_comparisons=optimization["comparisons"],
+            uplift=chosen_comparison["uplift"],
+            expected_risk_cost=risk_cost,
+            recommended_net_value=optimization["recommended_net_value"],
+            decision_reason=optimization["decision_reason"],
+            optimizer_recommendation=best_action,
+            guardrail_status=guardrail_decision.status,
+            guardrail_reason=guardrail_decision.reason,
+            decision_state=decision_state,
+            llm_explanation=llm_explanation
         )
 
     @staticmethod

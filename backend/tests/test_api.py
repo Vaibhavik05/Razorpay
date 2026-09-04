@@ -67,6 +67,22 @@ def test_unauthenticated_request_fails(client):
     response = client.get("/api/v1/merchant/dashboard")
     assert response.status_code == 401
 
+
+def test_cross_merchant_recommendation_is_rejected(client):
+    response = client.post(
+        "/api/v1/recovery/recommend",
+        json={
+            "transaction_id": "merchant_isolation_check",
+            "merchant_id": "MERCHANT001",
+            "customer_id": "CUST001",
+            "amount": 5000.0,
+            "failure_reason": "TIMEOUT",
+        },
+        headers={"Authorization": "Bearer merchant_token_beta"},
+    )
+    assert response.status_code == 403
+
+
 def test_merchant_dashboard_authenticated(client, db_session):
     _seed_base_data(db_session)
     response = client.get("/api/v1/merchant/dashboard", headers=AUTH_HEADERS)
@@ -141,6 +157,13 @@ def test_recovery_recommend_endpoint(client, db_session):
     assert "recommended_action" in res["data"]
     assert "expected_net_value" in res["data"]
     assert "expected_recovery" in res["data"]
+    assert set(res["data"]["action_probabilities"]) == {
+        "NO_ACTION",
+        "RETRY",
+        "PAYMENT_LINK",
+        "CUSTOMER_NOTIFICATION",
+        "HUMAN_ESCALATION",
+    }
 
 def test_recovery_execute_idempotent(client, db_session):
     _seed_base_data(db_session)

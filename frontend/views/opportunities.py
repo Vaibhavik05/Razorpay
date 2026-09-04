@@ -28,51 +28,8 @@ def render_opportunities(client: APIClient):
         st.error(f"API Error: {ex}")
         return
 
-    # Add canonical demo items if not in list
-    canonical_items = [
-        {
-            "recovery_id": "REC789",
-            "transaction_id": "TXN123",
-            "amount": 12500.0,
-            "failure_reason": "TIMEOUT",
-            "recommended_action": "PAYMENT_LINK",
-            "expected_incremental_revenue": 2150.0,
-            "confidence": 0.91,
-            "risk_level": "LOW",
-            "status": "RECOMMENDED"
-        },
-        {
-            "recovery_id": "REC_DEMO_001",
-            "transaction_id": "PAY_DEMO_001",
-            "amount": 5000.0,
-            "failure_reason": "TIMEOUT",
-            "recommended_action": "PAYMENT_LINK",
-            "expected_incremental_revenue": 2250.0,
-            "confidence": 0.89,
-            "risk_level": "LOW",
-            "status": "RECOMMENDED"
-        },
-        {
-            "recovery_id": "REC_PAY_10293",
-            "transaction_id": "PAY_10293",
-            "amount": 25000.0,
-            "failure_reason": "TIMEOUT",
-            "recommended_action": "HUMAN_ESCALATION",
-            "expected_incremental_revenue": 4500.0,
-            "confidence": 0.85,
-            "risk_level": "HIGH",
-            "status": "APPROVAL_REQUIRED"
-        }
-    ]
-
-    # Combine and deduplicate
-    seen = set()
-    combined_opps = []
-    for item in canonical_items + top_opps:
-        r_id = item.get("recovery_id")
-        if r_id not in seen:
-            seen.add(r_id)
-            combined_opps.append(item)
+    # The backend is the sole source of opportunity data.
+    combined_opps = top_opps
 
     # Filter
     filtered = []

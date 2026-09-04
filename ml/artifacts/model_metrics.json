@@ -1,0 +1,184 @@
+{
+  "model_name": "recovery_probability_model",
+  "model_version": "v2.0",
+  "algorithm": "XGBoost",
+  "target_column": "recovered",
+  "feature_columns": [
+    "transaction_amount",
+    "payment_method",
+    "customer_segment",
+    "failure_reason",
+    "previous_transaction_count",
+    "historical_success_rate",
+    "retry_count"
+  ],
+  "categorical_features": [
+    "payment_method",
+    "customer_segment",
+    "failure_reason"
+  ],
+  "numerical_features": [
+    "transaction_amount",
+    "previous_transaction_count",
+    "historical_success_rate",
+    "retry_count"
+  ],
+  "preprocessing": "StandardScaler for numerical features; OneHotEncoder(handle_unknown=ignore) for categorical features",
+  "random_seed": 42,
+  "threshold": 0.405,
+  "threshold_selection": "maximum F1 on train-only validation split",
+  "calibration_used": false,
+  "calibration_method": null,
+  "training_timestamp_utc": "2026-09-04T09:58:56.316931+00:00",
+  "dataset": "Synthetic (Buildathon Simulation)",
+  "training_rows": 40000,
+  "training_positive_count": 21362,
+  "training_negative_count": 18638,
+  "validation_rows": 8000,
+  "held_out_test_rows": 10000,
+  "held_out_test_positive_count": 5341,
+  "held_out_test_negative_count": 4659,
+  "feature_count": 7,
+  "validation_f1": 0.732473,
+  "validation_metrics": {
+    "split": "train_validation",
+    "roc_auc": 0.732033,
+    "pr_auc": 0.752462,
+    "precision": 0.609711,
+    "recall": 0.917135,
+    "f1": 0.732473,
+    "brier_score": 0.204689,
+    "confusion_matrix": [
+      [
+        1220,
+        2508
+      ],
+      [
+        354,
+        3918
+      ]
+    ],
+    "observed_recovery_rate": 0.534,
+    "predicted_positive_rate": 0.80325,
+    "probability_distribution": {
+      "min": 0.030629,
+      "p25": 0.432241,
+      "median": 0.512849,
+      "p75": 0.619284,
+      "max": 0.933191,
+      "mean": 0.529698
+    },
+    "calibration_curve": {
+      "mean_predicted_probability": [
+        0.113326,
+        0.355254,
+        0.430777,
+        0.468607,
+        0.499019,
+        0.527056,
+        0.559833,
+        0.634438,
+        0.826024,
+        0.884103
+      ],
+      "observed_fraction_positive": [
+        0.106117,
+        0.354193,
+        0.42625,
+        0.485643,
+        0.534418,
+        0.53607,
+        0.566583,
+        0.63806,
+        0.821608,
+        0.8725
+      ]
+    }
+  },
+  "held_out_test_metrics": {
+    "split": "held_out_test",
+    "roc_auc": 0.731074,
+    "pr_auc": 0.756706,
+    "precision": 0.603028,
+    "recall": 0.917244,
+    "f1": 0.727664,
+    "brier_score": 0.203991,
+    "confusion_matrix": [
+      [
+        1434,
+        3225
+      ],
+      [
+        442,
+        4899
+      ]
+    ],
+    "observed_recovery_rate": 0.5341,
+    "predicted_positive_rate": 0.8124,
+    "probability_distribution": {
+      "min": 0.038821,
+      "p25": 0.440164,
+      "median": 0.52112,
+      "p75": 0.633515,
+      "max": 0.927937,
+      "mean": 0.538585
+    },
+    "calibration_curve": {
+      "mean_predicted_probability": [
+        0.121396,
+        0.36852,
+        0.440858,
+        0.478791,
+        0.508372,
+        0.533811,
+        0.56468,
+        0.649659,
+        0.836734,
+        0.883337
+      ],
+      "observed_fraction_positive": [
+        0.12,
+        0.375,
+        0.431,
+        0.48,
+        0.513972,
+        0.509018,
+        0.557328,
+        0.626881,
+        0.842,
+        0.886
+      ]
+    }
+  },
+  "feature_importance": {
+    "cat__failure_reason_UNKNOWN": 0.61962914,
+    "num__historical_success_rate": 0.10998394,
+    "num__retry_count": 0.10505452,
+    "cat__customer_segment_NEW": 0.02809892,
+    "cat__failure_reason_NETWORK_ERROR": 0.02315486,
+    "cat__failure_reason_LIMIT_EXCEEDED": 0.01188685,
+    "cat__failure_reason_CUSTOMER_ABANDONED": 0.01093175,
+    "cat__customer_segment_LOYAL": 0.00931505,
+    "num__previous_transaction_count": 0.00785993,
+    "cat__failure_reason_INSUFFICIENT_FUNDS": 0.0075013,
+    "cat__payment_method_WALLET": 0.00720951,
+    "cat__failure_reason_AUTHENTICATION_FAILURE": 0.00670258,
+    "cat__customer_segment_HIGH_VALUE": 0.00654287,
+    "num__transaction_amount": 0.00612793,
+    "cat__payment_method_EMI": 0.00609942,
+    "cat__failure_reason_BANK_DECLINE": 0.00537846,
+    "cat__failure_reason_OTP_FAILURE": 0.00525822,
+    "cat__payment_method_NETBANKING": 0.00515004,
+    "cat__failure_reason_GATEWAY_TIMEOUT": 0.00491539,
+    "cat__payment_method_CARD": 0.00490653,
+    "cat__payment_method_UPI": 0.00443636,
+    "cat__customer_segment_RETURNING": 0.00385641
+  },
+  "software_versions": {
+    "python": "3.13.9",
+    "scikit_learn": "1.7.2",
+    "xgboost": "3.4.1",
+    "pandas": "2.3.3"
+  },
+  "test_set_used_for_tuning": false
+}

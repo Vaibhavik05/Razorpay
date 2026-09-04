@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
 from frontend.components.kpi import render_kpi_card
 from frontend.api_client import APIClient
 
@@ -23,24 +21,25 @@ def render_dashboard(client: APIClient):
     # 2. Render 4 Primary Fintech KPI Cards (09_UI_UX_DESIGN_SPEC.md Section 9)
     rev_at_risk = dash_data.get("revenue_at_risk", 0.0)
     rev_recovered = dash_data.get("recovered_revenue", 0.0)
+    inc_revenue = dash_data.get("incremental_revenue", 0.0)
     rec_rate = dash_data.get("recovery_rate", 0.0) * 100
     avg_rec_val = dash_data.get("average_recovery_value", 0.0)
 
-    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
     with kpi1:
         render_kpi_card(
             title="Revenue At Risk",
             value=f"₹{rev_at_risk / 100000:,.1f}L" if rev_at_risk >= 100000 else f"₹{rev_at_risk:,.0f}",
-            subtext="vs previous period",
-            trend="↑ 8.2%",
+            subtext="from backend records",
+            trend="",
             is_positive=False
         )
     with kpi2:
         render_kpi_card(
             title="Recovered Revenue",
             value=f"₹{rev_recovered / 100000:,.1f}L" if rev_recovered >= 100000 else f"₹{rev_recovered:,.0f}",
-            subtext="vs previous period",
-            trend="↑ 12.4%",
+            subtext="from backend records",
+            trend="",
             is_positive=True
         )
     with kpi3:
@@ -53,6 +52,14 @@ def render_dashboard(client: APIClient):
         )
     with kpi4:
         render_kpi_card(
+            title="Incremental Revenue",
+            value=f"₹{inc_revenue / 100000:,.1f}L" if inc_revenue >= 100000 else f"₹{inc_revenue:,.0f}",
+            subtext="from recorded recoveries",
+            trend="",
+            is_positive=True
+        )
+    with kpi5:
+        render_kpi_card(
             title="Avg Recovery Value",
             value=f"₹{avg_rec_val:,.0f}",
             subtext="Per recovered payment",
@@ -61,33 +68,8 @@ def render_dashboard(client: APIClient):
         )
 
     # 3. Trend Chart (09_UI_UX_DESIGN_SPEC.md Section 11)
-    st.markdown("#### 📈 Revenue Recovery Trend (Last 30 Days)")
-    dates = [datetime.utcnow() - timedelta(days=i) for i in range(29, -1, -1)]
-    date_strs = [d.strftime("%b %d") for d in dates]
-    
-    # Generate synthetic trend values based on actual totals
-    daily_base = (rev_recovered / 30.0) if rev_recovered > 0 else 15000.0
-    daily_risk_base = (rev_at_risk / 30.0) if rev_at_risk > 0 else 45000.0
-    
-    risk_trend = [round(daily_risk_base * (1 + 0.15 * (i % 5 - 2)), 0) for i in range(30)]
-    recovered_trend = [round(daily_base * (0.8 + 0.02 * i + 0.1 * (i % 3 - 1)), 0) for i in range(30)]
-    expected_trend = [round(r * 1.15, 0) for r in recovered_trend]
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=date_strs, y=risk_trend, name="Revenue At Risk", line=dict(color="#EF4444", width=2, dash="dot")))
-    fig.add_trace(go.Scatter(x=date_strs, y=expected_trend, name="Expected Recovery", line=dict(color="#3B82F6", width=2)))
-    fig.add_trace(go.Scatter(x=date_strs, y=recovered_trend, name="Actual Recovered", line=dict(color="#10B981", width=3)))
-    
-    fig.update_layout(
-        height=320,
-        margin=dict(l=20, r=20, t=20, b=20),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        plot_bgcolor="#FFFFFF",
-        paper_bgcolor="#FFFFFF",
-        xaxis=dict(showgrid=True, gridcolor="#F1F5F9"),
-        yaxis=dict(showgrid=True, gridcolor="#F1F5F9", tickprefix="₹")
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("#### 📈 Revenue Recovery Trend")
+    st.info("Time-series recovery data is not available from the backend yet.")
 
     # 4. Top Opportunities & AI Actions Summary (Section 8, 30)
     col_opp, col_actions = st.columns([5, 3])

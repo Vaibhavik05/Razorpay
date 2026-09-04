@@ -1,5 +1,6 @@
 import streamlit as st
 import uuid
+import pandas as pd
 from frontend.api_client import APIClient
 
 def render_detail(client: APIClient):
@@ -7,9 +8,9 @@ def render_detail(client: APIClient):
     
     rec_id = st.session_state.get("selected_recovery_id", "REC789")
     tx_id = st.session_state.get("selected_tx_id", "TXN123")
-    amount = st.session_state.get("selected_amount", 12500.0)
+    amount = st.session_state.get("selected_amount")
     failure = st.session_state.get("selected_failure", "TIMEOUT")
-    rec_action = st.session_state.get("selected_action", "PAYMENT_LINK")
+    rec_action = st.session_state.get("selected_action")
 
     st.caption(f"Inspecting Opportunity **{rec_id}** for Transaction **{tx_id}**")
 
@@ -29,14 +30,19 @@ def render_detail(client: APIClient):
         st.error(f"Failed to fetch live recommendation from API: {ex}")
         rec_data = {}
 
-    recommended_action = rec_data.get("recommended_action", rec_action)
-    rec_prob = rec_data.get("recovery_probability", 0.82)
-    inc_rev = rec_data.get("expected_incremental_revenue", 2150.0)
-    net_val = rec_data.get("expected_net_value", 2130.0)
-    confidence = rec_data.get("confidence", 0.91)
-    risk_lvl = rec_data.get("risk_level", "LOW")
+    if not rec_data:
+        st.info("No decision data is available for this opportunity.")
+        return
+
+    recommended_action = rec_data.get("recommended_action", rec_action or "NO_ACTION")
+    rec_prob = rec_data.get("recovery_probability", 0.0)
+    inc_rev = rec_data.get("expected_incremental_revenue", 0.0)
+    net_val = rec_data.get("expected_net_value", 0.0)
+    confidence = rec_data.get("confidence", 0.0)
+    risk_lvl = rec_data.get("risk_level", "UNKNOWN")
     requires_approval = rec_data.get("requires_approval", False)
-    reason = rec_data.get("reason", "Returning customer with timeout failure; payment link yields highest expected incremental recovery.")
+    reason = rec_data.get("reason", "No explanation available.")
+    amount = amount if amount is not None else 0.0
 
     # 1. Top context row: Payment Info + Customer Info (09_UI_UX_DESIGN_SPEC.md Section 15)
     c1, c2, c3 = st.columns(3)
@@ -63,8 +69,8 @@ def render_detail(client: APIClient):
                 <div style="font-size:18px;font-weight:800;color:#0F172A;margin:4px 0;">CUST456</div>
                 <div style="font-size:12px;color:#475569;">
                     <strong>Segment:</strong> Returning / Loyal<br/>
-                    <strong>Success Rate:</strong> 83%<br/>
-                    <strong>Previous Recoveries:</strong> 2 Completed
+                    <strong>Historical context:</strong> Available to backend decisioning<br/>
+                    <strong>Decision source:</strong> Recovery API
                 </div>
             </div>
             """,
@@ -90,17 +96,13 @@ def render_detail(client: APIClient):
 
     # 2. Action Comparison Matrix (09_UI_UX_DESIGN_SPEC.md Section 16)
     st.markdown("#### ⚖️ Action Comparison Matrix")
-    st.caption("Backend evaluates all candidate actions to optimize expected net incremental yield.")
+    st.caption("Backend evaluates all candidate actions using recovery probability, uplift, cost, and risk.")
     
-    # Deterministic simulation values for comparison table
-    comp_rows = [
-        {"Action": "No Action", "Recovery Prob.": "30%", "Intervention Cost": "₹0.00", "Incremental Revenue": "₹0.00", "Net Value": "₹0.00", "Status": "Baseline"},
-        {"Action": "Smart Retry", "Recovery Prob.": "55%", "Intervention Cost": "₹2.00", "Incremental Revenue": f"₹{amount * 0.15:,.2f}", "Net Value": f"₹{amount * 0.15 - 2:,.2f}", "Status": "Eligible"},
-        {"Action": "Payment Link", "Recovery Prob.": f"{rec_prob:.0%}", "Intervention Cost": "₹20.00", "Incremental Revenue": f"₹{inc_rev:,.2f}", "Net Value": f"₹{net_val:,.2f}", "Status": "⭐ Recommended"},
-        {"Action": "Notification", "Recovery Prob.": "65%", "Intervention Cost": "₹5.00", "Incremental Revenue": f"₹{amount * 0.18:,.2f}", "Net Value": f"₹{amount * 0.18 - 5:,.2f}", "Status": "Eligible"},
-        {"Action": "Human Escalation", "Recovery Prob.": "75%", "Intervention Cost": "₹50.00", "Incremental Revenue": f"₹{amount * 0.20:,.2f}", "Net Value": f"₹{amount * 0.20 - 50:,.2f}", "Status": "Review Required" if amount > 25000 else "Eligible"}
-    ]
-    st.table(comp_rows)
+    comparisons = rec_data.get("action_comparisons", [])
+    if comparisons:
+        st.dataframe(pd.DataFrame(comparisons), use_container_width=True, hide_index=True)
+    else:
+        st.info("No action comparison data is available.")
 
     # 3. AI Recommendation & Guardrail Checks (Section 17 & 19)
     col_ai, col_guard = st.columns([5, 4])
@@ -116,12 +118,11 @@ def render_detail(client: APIClient):
                 </div>
                 <div style="font-size:13px;color:#1E3A8A;background:#FFFFFF;border:1px solid #DBEAFE;border-radius:6px;padding:10px;">
                     <strong>Why?</strong><br/>
-                    • Returning customer with high historical completion rate.<br/>
-                    • Failure cause is transient network/gateway timeout.<br/>
-                    • Payment links minimize customer friction and maximize expected net value.
+                    {reason}
                 </div>
                 <div style="font-size:12px;color:#3B82F6;margin-top:8px;">
-                    Confidence: <strong>{confidence:.0%}</strong> &nbsp;|&nbsp; Requires Human Approval: <strong>{requires_approval}</strong>
+                    Confidence: <strong>{confidence:.0%}</strong> &nbsp;|&nbsp; Requires Human Approval: <strong>{requires_approval}</strong><br/>
+                    Decision state: <strong>{rec_data.get('decision_state', 'UNKNOWN')}</strong>
                 </div>
             </div>
             """,
@@ -134,32 +135,34 @@ def render_detail(client: APIClient):
             <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:16px;">
                 <div style="font-size:12px;font-weight:700;color:#15803D;text-transform:uppercase;">Deterministic Guardrail Engine</div>
                 <div style="font-size:13px;color:#166534;margin-top:8px;line-height:1.8;">
-                    ✓ <strong>Action Allowed:</strong> In merchant policy allowlist<br/>
-                    ✓ <strong>Customer Permission:</strong> Customer has not opted out<br/>
-                    ✓ <strong>Retry Limit:</strong> Within limit (1/2 attempts)<br/>
-                    ✓ <strong>Merchant Policy:</strong> Compliant with auto-recovery limit<br/>
-                    ✓ <strong>Duplicate Check:</strong> No active duplicate action found
+                    <strong>Guardrail Status:</strong> {rec_data.get('guardrail_status', 'UNKNOWN')}<br/>
+                    <strong>Guardrail Reason:</strong> {rec_data.get('guardrail_reason', 'No reason provided.')}<br/>
+                    <strong>Approval Required:</strong> {requires_approval}
                 </div>
                 <hr style="margin:10px 0;border-top:1px solid #DCFCE7;"/>
                 <div style="font-size:12px;font-weight:700;color:#15803D;">
-                    Status: <span style="background:#DCFCE7;padding:2px 6px;border-radius:4px;">PASSED (ALLOW)</span>
+                    Status: <span style="background:#DCFCE7;padding:2px 6px;border-radius:4px;">{rec_data.get('guardrail_status', 'UNKNOWN')}</span>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
+    explanation = rec_data.get("llm_explanation")
+    if explanation:
+        st.info(f"Explanation ({explanation.get('source', 'fallback')}): {explanation.get('text', 'Unavailable')}")
+
     st.markdown("<br/>", unsafe_allow_html=True)
 
     # 4. Explicit Execution Section (09_UI_UX_DESIGN_SPEC.md Section 21-23)
     st.markdown("#### 🚀 Execute Recovery Action")
-    st.write(f"Click below to trigger controlled execution of **{recommended_action}** for payment **{tx_id}** via Razorpay.")
+    st.write(f"Controlled execution status for **{recommended_action}** on payment **{tx_id}**.")
 
     idempotency_key = f"IDEMP_{rec_id}_{tx_id}"
     
     exec_col1, exec_col2 = st.columns([3, 2])
     with exec_col1:
-        if st.button(f"⚡ Execute {recommended_action.replace('_', ' ')} for {tx_id}", type="primary", use_container_width=True):
+        if recommended_action != "NO_ACTION" and st.button(f"⚡ Execute {recommended_action.replace('_', ' ')} for {tx_id}", type="primary", use_container_width=True):
             with st.spinner("Executing through Razorpay Adapter & Logging Audit Trail..."):
                 exec_payload = {
                     "recovery_id": rec_id,
@@ -186,9 +189,9 @@ def render_detail(client: APIClient):
                 <div style="font-size:14px;font-weight:700;color:#0F172A;">✓ Recovery Action Completed</div>
                 <div style="font-size:13px;color:#334155;margin-top:6px;">
                     <strong>Action:</strong> {exec_info.get('action')}<br/>
-                    <strong>Payment Link ID:</strong> <code>{exec_info.get('payment_link_id', 'plink_test_123')}</code><br/>
-                    <strong>Link URL:</strong> <a href="{exec_info.get('payment_link_url', '#')}" target="_blank">{exec_info.get('payment_link_url', 'https://rzp.io/i/plink_demo')}</a><br/>
-                    <strong>Status:</strong> <span style="color:#10B981;font-weight:700;">SUCCESS</span><br/>
+                    <strong>Payment Link ID:</strong> <code>{exec_info.get('payment_link_id', 'Not applicable')}</code><br/>
+                    <strong>Link URL:</strong> {exec_info.get('payment_link_url', 'Not applicable')}<br/>
+                    <strong>Status:</strong> <span style="color:#10B981;font-weight:700;">{exec_info.get('execution_status', 'SUCCESS')}</span><br/>
                     <strong>Timestamp:</strong> {exec_info.get('executed_at')}
                 </div>
             </div>
@@ -209,3 +212,14 @@ def render_detail(client: APIClient):
                     st.success(f"Webhook verified & processed! ₹{amount:,.2f} recorded as Recovered Revenue.")
                 else:
                     st.error("Webhook processing failed.")
+
+    st.markdown("#### Audit History")
+    try:
+        audit_response = client.get_audit(rec_id)
+        audit_events = audit_response.get("data", {}).get("events", []) if audit_response.get("success") else []
+        if audit_events:
+            st.dataframe(pd.DataFrame(audit_events), use_container_width=True, hide_index=True)
+        else:
+            st.info("No audit events recorded for this opportunity.")
+    except Exception as ex:
+        st.info(f"Audit history unavailable: {ex}")
