@@ -1,0 +1,41 @@
+{
+  "row_count": 50000,
+  "unique_payment_ids": 50000,
+  "duplicate_payment_ids": 0,
+  "amount_positive": true,
+  "recovered_amount_valid": true,
+  "probabilities_valid": true,
+  "counts_valid": true,
+  "recovery_zero_amount_consistent": true,
+  "recovery_one_amount_positive": true,
+  "split_train_rows": 40000,
+  "split_test_rows": 10000,
+  "split_ratio": 0.8,
+  "train_test_payment_overlap": 0,
+  "payment_method_valid": true,
+  "card_type_valid": true,
+  "issuer_type_valid": true,
+  "customer_segment_valid": true,
+  "day_of_week_valid": true,
+  "payment_status_valid": true,
+  "failure_category_valid": true,
+  "recovery_status_valid": true,
+  "action_taken_valid": true,
+  "train_recovery_rate": 0.5341,
+  "test_recovery_rate": 0.5341,
+  "causal_outcome_consistency": {
+    "rows": 50000,
+    "incremental_recovery_mismatches_after_fix": 0,
+    "incremental_revenue_mismatches_after_fix": 0,
+    "recovered_matches_selected_potential_outcome": true,
+    "train_rows": 40000,
+    "test_rows": 10000,
+    "train_test_overlap": 0,
+    "incremental_recovery_distribution": {
+      "-1": 5835,
+      "0": 35781,
+      "1": 8384
+    },
+    "mean_incremental_revenue_inr": 80.98
+  }
+}

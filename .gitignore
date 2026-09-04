@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+# Virtual envs
+venv/
+.env
+.env.*
+# IDE
+.vscode/
+.idea/
+# Bytecode
+*.class
+# Build artifacts
+build/
+*.egg-info/
+# Logs
+*.log
+# Database
+nexarecover.db
+# Streamlit secrets
+.streamlit/secrets.toml
+# ML artefacts
+ml/artifacts/
+# Evaluation reports
+evaluation/
+# Test caches
+.pytest_cache/
+# Misc
+.DS_Store
