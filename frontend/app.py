@@ -158,8 +158,9 @@ def _probe_backend(client: APIClient) -> tuple[str, str]:
     """Returns (status_label, env_label) for top nav rendering."""
     try:
         resp = client.get_health()
-        if resp.get("status") == "ok":
-            env = resp.get("environment", "TEST").upper()
+        health_data = resp.get("data", {})
+        if resp.get("success") and health_data.get("status") == "healthy":
+            env = health_data.get("environment", resp.get("environment", "TEST")).upper()
             return "Healthy", env
     except Exception:
         pass

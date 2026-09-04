@@ -119,23 +119,23 @@ def render_dashboard(client: APIClient):
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 16px;">
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #EDF2F7;">
                     <span>🔄 Smart Retries</span>
-                    <strong>127</strong>
+                    <strong>Not available</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #EDF2F7;">
                     <span>🔗 Payment Links</span>
-                    <strong>83</strong>
+                    <strong>Not available</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #EDF2F7;">
                     <span>📩 Customer Notifications</span>
-                    <strong>42</strong>
+                    <strong>Not available</strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding: 6px 0;">
                     <span>👤 Reviewer Escalations</span>
-                    <strong>12</strong>
+                    <strong>Not available</strong>
                 </div>
                 <hr style="margin: 12px 0 8px 0; border: none; border-top: 1px solid #CBD5E1;" />
                 <div style="font-size: 13px; color: #475569;">
-                    <strong>Total Yield Today:</strong> ₹8.2L Expected
+                    <strong>Total Yield Today:</strong> Not available
                 </div>
             </div>
             """,
