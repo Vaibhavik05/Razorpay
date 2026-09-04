@@ -329,7 +329,7 @@ elif page == "System Health & Config":
     st.markdown("#### Environment Summary")
 
     env_rows = {
-        "API Base URL": os.getenv("API_BASE_URL", "http://127.0.0.1:8000/api/v1"),
+        "API Base URL": client.base_url,
         "Razorpay Mode": os.getenv("RAZORPAY_MODE", "MOCK"),
         "Backend Status": _status,
         "Active Role": st.session_state["persona"],
